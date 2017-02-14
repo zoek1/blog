@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[blog]]></title><description><![CDATA[blog]]></description><link>http://blog.zoek.space</link><generator>RSS for Node</generator><lastBuildDate>Tue, 14 Feb 2017 10:28:04 GMT</lastBuildDate><atom:link href="http://blog.zoek.space/feed.xml" rel="self" type="application/rss+xml"/><item><title><![CDATA[Iniciando con GDB]]></title><description><![CDATA[<h1 id="iniciando-con-gdb"><a href="#iniciando-con-gdb" class="phenomic-HeadingAnchor">#</a>Iniciando con GDB</h1>
+<p>Hace unos días, mientras revisaba el timeline de twitter, un tuit de mi amigo <a href="https://twitter.com/metaedd">@metaedd</a>, llamo demasiado mi atención, este decía lo siguiente:</p>
+<blockquote>
+<p><strong>Ese momento Épico cuando tu programa compila sin errores y Fail cuando no corre de manera adecuada y ya no te marca los errores!</strong> — <em>metaedd</em></p>
+</blockquote>
+<p>Sin querer, mi amigo me dio un excelente tema para publicar en este su blog y que ayudara a conocer a los debuggers, a ser mas productivos o mas mundana mente, a minimizar esas noches de desvelo o de privarnos de la sociedad para poder encontrar esos errores que en muchas ocasiones llegan a avergonzarnos y otras veces son una buena razón para quedarnos meditando con un buen café.</p>
+<p>Retomando el tema, partiremos de la idea del tuit de la cual podemos decir que cuando un programa no muestra errores de compilación no necesaria mente es indicio de que su ejecución y su lógica es correcta. Pero ¿como podemos llegar a estar casi seguros de que el programa no tratara de accederá a locaciones de memoria no permitidas (un típico segmentation fault), o no encenderá a la computadora en llamas, entre otros casos menos dramáticos?.</p>
+<p>La respuesta lógica a esta incógnita es depurar el programa, y ya respondida esta surge otra pregunta y esa es el ¿como llegar a hacerlo?.</p>
+<p>Una practica muy común es poner prints o puts tanteando a lo largo del código, hasta encontrar el error.</p>
+<p><img src="http://zoek.space/static/image/debug-printf.jpg" alt="depuración ruda"></p>
+<p>¿Qué si es valida esta forma? Claro que es valida, de cualquier manera es una forma de encontrar los errores, aunque muy poco elegante y eficiente.</p>
+<blockquote>
+<p><strong>No todo lo que este en la moda, es necesariamente lo correcto</strong></p>
+</blockquote>
+<p>Dado que siempre ha existido la necesidad de solucionar errores, puesto que somos humanos, desarrolladores crearon herramientas que permitieran facilitar y optimizar esta labor, a estos se les dio el nombre de debugger o depuradores. Quisiera hondear un poco sobre la historia de la palabra debugger, pero sera para alguna otra ocasión.</p>
+<p>Veamos por el momento la definición de debugger o depurador, cortesía de <a href="http://es.wikipedia.org/wiki/Depurador">wikipedia</a>.</p>
+<blockquote>
+<p><strong>Un debugger o depurador es usado para probar un programa objetivo y eliminar sus errores.</strong></p>
+</blockquote>
+<p>Con base en la definición, un programa son instrucciones y datos, los cuales fueron provistos por códigos fuente escritos en algún lenguaje de programación. Hoy en día gran mayoría de los lenguajes de programación tienen herramientas que permitan, ejecutar instrucción por instrucción, linea a linea del programa y así facilitar así el desarrollo de software. A las herramientas que realizan esta tarea, se les conoce como debuggers.</p>
+<p>Dejando de lado la palabrería y pasando a la practica les presentare un clásico de clásicos, el GNU Project Debugger - GDB. Este debugger ademas de ser código abierto provee soporte para debuggear C/C++, Ada, Pascal, Objective-C, entre otros.</p>
+<p><img src="http://zoek.space/static/image/archer.png" alt="Archer - Mascota de gdb"></p>
+<p>Para empezar necesitamos código que compile pero que tenga algunos errores, yo propongo algo sencillo para comenzar a aprender.</p>
+<p>La función que debe cumplir este programa es crear un arreglo con longitud TAM, con un ciclo asignar a cada posición su respectivo indice, y en otro ciclo imprimir el contenido de cada locación.
+</p>
+<pre><code class="hljs language-C">    <span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&#x3C;stdio.h></span></span>
+    <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> TAM 3</span>
+    
+    <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span>{
+        <span class="hljs-keyword">int</span> i=TAM, numeros[TAM];
+    
+        <span class="hljs-keyword">while</span>(i-- >= <span class="hljs-number">0</span>)
+            numeros[i] = i;
+    
+        <span class="hljs-keyword">while</span>(i &#x3C; TAM)
+            <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%dn"</span>, numeros[i++]);
+    
+         <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+     }</code></pre>
+<p>ahora compilemos el programa de la siguiente manera:
+</p>
+<pre><code class="hljs language-console">debug$ gcc <span class="hljs-keyword">debugger</span><span class="hljs-number">-1.</span>c -ggdb3 -o <span class="hljs-keyword">debugger</span><span class="hljs-number">-1.</span>c</code></pre>
+<p>Lo que indicamos en la linea de comando es, que incluya los símbolos de depuración en el binario. Específicamente con la opción -ggdb indicamos que genere información de depuración para ser usada por gdb la cual deberá de ser lo mas explicita posible, de acuerdo al manual este podría ser alguno de los formatos dwarf 2, stabs o el formato nativo y el numero tres indica el nivel de información que requerimos. El nivel por defecto es el 2, este incluye descripción de funciones, de variables externas e internas y numeros de linea. El tres va un poco mas halla, este incluye todas las definiciones de macros presentes en el programa.</p>
+<p>Ejecutemos el programa para verificar que tenemos un código erróneo.
+</p>
+<pre><code class="hljs language-console">debug$ ./debugger<span class="hljs-number">-1</span>
+<span class="hljs-number">-1074137012</span>
+<span class="hljs-number">-1</span>
+<span class="hljs-number">0</span>
+<span class="hljs-number">1</span>
+<span class="hljs-number">2</span></code></pre>
+<p>Nuestro código esta imprimiendo algo de basura, por lo que completamos la "difícil" tarea de tener un código erróneo. Ahora solo queda llamar a gdb pasando le como parámetro nuestro ejecutable, puede llegar a verse de la siguiente manera la bienvenida.
+</p>
+<pre><code class="hljs language-gdb">debug$ gdb debugger<span class="hljs-number">-1</span>
+GNU gdb (GDB) <span class="hljs-number">7.5</span><span class="hljs-number">.1</span>
+Copyright (C) <span class="hljs-number">2012</span> Free Software Foundation, Inc.
+License GPLv3+: GNU GPL <span class="hljs-built_in">version</span> <span class="hljs-number">3</span> <span class="hljs-keyword">or</span> later &#x3C;<span class="hljs-keyword">http</span>: gnu.org=<span class="hljs-string">""</span> licenses=<span class="hljs-string">""</span> gpl.html=<span class="hljs-string">""</span>>
+This is free software: you are free <span class="hljs-built_in">to</span> change <span class="hljs-keyword">and</span> redistribute <span class="hljs-keyword">it</span>.
+There is NO WARRANTY, <span class="hljs-built_in">to</span> <span class="hljs-keyword">the</span> extent permitted <span class="hljs-keyword">by</span> law.  Type <span class="hljs-string">"show copying"</span>
+<span class="hljs-keyword">and</span> <span class="hljs-string">"show warranty"</span> <span class="hljs-keyword">for</span> details.
+This GDB was configured <span class="hljs-keyword">as</span> <span class="hljs-string">"i686-pc-linux-gnu"</span>.
+For bug reporting instructions, please see:
+&#x3C;<span class="hljs-keyword">http</span>: www.gnu.org=<span class="hljs-string">""</span> software=<span class="hljs-string">""</span> gdb=<span class="hljs-string">""</span> bugs=<span class="hljs-string">""</span>>...
+Reading symbols <span class="hljs-built_in">from</span> /home/zoek/code/c/debugger<span class="hljs-number">-1.</span>..done.
+(gdb)</code></pre>
+<p>Se debe de tomar especial atención en la última linea de la bienvenida, ya que se indica que la información de depuración es correcta y se puede proseguir con la depuración correctamente. Cuando un ejecutable no incluye la información de depuración, en esta misma linea nos indicara que no pudieron ser cargador los símbolos de depuración, por lo cual no podremos hacer la depuración correctamente.</p>
+<p>GDB cuenta con su propio prompt, este se muestra inicialmente como (gdb) y al igual que el del shell, utiliza readline dando así acceso a las combinaciones de teclas de acceso rápido de emacs o de vi, también te ofrece la posibilidad de auto-completar ya sean los comando o las definiciones de los elementos del programa.</p>
+<p>Para empezar a depurar nuestro programa, lo primero a hacer es establecer un punto de interrupción, para así poder detener la ejecución del programa esto se hace con el comando break mas un argumento el cual puede ser una definición de función, un numero de linea, una etiqueta o una dirección valida del programa. En este momento utilizaremos una definición de función detener la ejecución, pero en futuras ocasiones describiré cada uno de los especificadores de locación validos. Estableceré el punto de interrupción en la definición de la función main dado que es la única en el código.</p>
+<p>Algo que debo de destacar es que algunos de los comando de gdb tienen sus respectivas abreviaciones como es el caso de break y su abreviación es 'b' o el de run que es 'r'. <strong>Se debe tener en claro que solo son algunos de los comandos, los que tienen abreviación.</strong>
+</p>
+<pre><code class="hljs language-gdb">(gdb) break main
+Breakpoint <span class="hljs-number">1</span> <span class="hljs-keyword">at</span> <span class="hljs-number">0x8048405</span>: <span class="hljs-built_in">file</span> debugger<span class="hljs-number">-1.</span>c, <span class="hljs-built_in">line</span> <span class="hljs-number">5.</span></code></pre>
+<p>La salida nos muestra que el punto de interrupción ha sido correctamente establecido en la dirección 0x8048405 y que la definición se encuentra en el archivo debugger-1.c, en la linea 5. La dirección depende de la posición en la que es colocado el programa.</p>
+<p>Ahora que ya tenemos el punto de interrupción podemos ejecutar el programa con la plena seguridad de que no terminara su ejecución antes de que parpadeemos, si no que se detendrá cuando inicia la definición de la función. El comando para empezar la ejecución del programa es run y puede ir seguido si este los requiere de opciones como si fuese una orden en el shell, en nuestro caso no las utilizaremos.
+</p>
+<pre><code class="hljs language-gdb">(gdb) r
+Starting <span class="hljs-string">program:</span> <span class="hljs-regexp">/home/</span>zoek<span class="hljs-regexp">/code/</span>c/debugger<span class="hljs-number">-1</span>
+
+Breakpoint <span class="hljs-number">1</span>, main () at debugger<span class="hljs-number">-1.</span><span class="hljs-string">c:</span><span class="hljs-number">5</span>
+<span class="hljs-number">5</span>      <span class="hljs-keyword">int</span> i=TAM, numeros[TAM];</code></pre>
+<p>La salida después de ejecutar el comando run, señala que el programa se ha detenido en el punto de interrupción 1, en la definición de main, también muestra el numero de linea y la siguiente instrucción a ejecutar, esto es que la linea 5 la cual tiene la declaración de i y números, es la próxima instrucción a ejecutar.</p>
+<p>Para reanudar la ejecución del programa una instrucción a la vez, existen varios comando pero en esta ocasión solo expondremos los mas comunes y estos son step y next. La diferencia entre estos dos se basa en que step ejecuta una instrucción a la vez y si la siguiente instrucción fuese una función de la cual se tienen los símbolos de depuración, entonces saltaría dentro de la definición de la función, mientras que next ejecutaría la función sin adentrarse en ella. También estos dos comandos cuentan con sus abreviaturas 's' para step y 'n' para next.</p>
+<p>Continuando con el programa, ejecutemos step hasta llegar al ciclo, adentrémonos en el ciclo e imprimamos el valor de i en cada iteración para asegurarnos que los valores del 2 a 0 están siendo asignados correctamente.</p>
+<p>Para obtener la impresión de los valores, contamos con el comando print el cual imprime la información acorde al tipo de dato del elemento que le pasemos como argumento o también existe el comando printf y su sintaxis es casi igual al printf en c solo que sin paréntesis, la cadena de formato y la lista de argumentos de donde se tomaran las representación se especifican de igual manera.
+</p>
+<pre><code class="hljs language-gdb">(gdb) s
+<span class="hljs-number">7</span>      while(i-- >= <span class="hljs-number">0</span>)
+(gdb) print i
+$<span class="hljs-number">1</span> = <span class="hljs-number">3</span>
+(gdb) s
+<span class="hljs-number">8</span>        numeros[i] = i;
+(gdb) s
+<span class="hljs-number">7</span>      while(i-- >= <span class="hljs-number">0</span>)
+(gdb) printf <span class="hljs-string">"numeros[%d] = %dn"</span>,i,numeros[i]
+numeros[<span class="hljs-number">2</span>] = <span class="hljs-number">2</span>
+(gdb) s
+<span class="hljs-number">8</span>        numeros[i] = i;
+(gdb) s
+<span class="hljs-number">7</span>      while(i-- >= <span class="hljs-number">0</span>)
+(gdb) printf <span class="hljs-string">"numeros[%d] = %dn"</span>,i,numeros[i]
+numeros[<span class="hljs-number">1</span>] = <span class="hljs-number">1</span>
+(gdb) s
+<span class="hljs-number">8</span>        numeros[i] = i;
+(gdb) s
+<span class="hljs-number">7</span>      while(i-- >= <span class="hljs-number">0</span>)
+(gdb) printf <span class="hljs-string">"numeros[%d] = %dn"</span>,i,numeros[i]
+numeros[<span class="hljs-number">0</span>] = <span class="hljs-number">0</span>
+(gdb) s
+<span class="hljs-number">8</span>        numeros[i] = i;
+(gdb) s
+<span class="hljs-number">7</span>      while(i-- >= <span class="hljs-number">0</span>)
+(gdb) printf <span class="hljs-string">"numeros[%d] = %dn"</span>,i,numeros[i]
+numeros[<span class="hljs-number">-1</span>] = <span class="hljs-number">-1</span>
+(gdb) s
+<span class="hljs-number">10</span>     while(i &#x3C; TAM)
+(gdb) print i
+$<span class="hljs-number">2</span> = <span class="hljs-number">-2</span></code></pre>
+<p>Como se puede observar el valor de i después de el ciclo de asignación es -2, esto es sin duda erróneo pues un índice negativo, se halla fuera del espacio reservado para el array y puede llegar a modificar otros datos, pero es permisible debido a que nos encontramos dentro del área designada al programa.</p>
+<p>Entonces tenemos claro que hay un error de lógica, de lo observado podríamos hacer algunas conjeturas:</p>
+<ol>
+<li>Las operaciones aplicadas sobre la variable i que actúa como índice, nos da un numero menor al esperado que es 0.</li>
+<li>El segundo ciclo ejecuta correctamente su código, mostrando cada uno de los valores almacenados.</li>
+</ol>
+<p>Dadas estas conjeturas podemos concluir que si la variable i al terminar el ciclo tuviera el valor de 0, el segundo while iteraría acorde a la lógica del programa y accedería a las locaciones de memoria verdaderas.</p>
+<p>Demostremos si esta conclusión es verdadera estableciendo el valor de i a 0 y ejecutando la instrucción until dándole como argumento la posición a detenerse.
+</p>
+<pre><code class="hljs language-gdb">(gdb) set variable i = <span class="hljs-number">0</span>
+(gdb) until <span class="hljs-number">12</span>
+<span class="hljs-number">0</span>
+<span class="hljs-number">1</span>
+<span class="hljs-number">2</span></code></pre>
+<p>Efectivamente, la conclusión fue correcta pero lo que verdad importa son los comandos set y until, hablemos un poco de ellos.</p>
+<p>set es un comando de gdb que permite asignar valores a las variables, pero para hacer distinción de las variable que usa gdb para las configuración y las del programa se antepone la palabra var o variable antes de la asignación de la variable del programa. Se puede ejecutar sin la palabra variable pero debemos tener cuidado de que no entre en conflicto con los sub-comandos de set.
+</p>
+<pre><code class="hljs language-gdb">(gdb) <span class="hljs-built_in">set</span> i = <span class="hljs-number">0</span>
+Ambiguous <span class="hljs-built_in">set</span> <span class="hljs-keyword">command</span> <span class="hljs-string">"i = 0"</span>: <span class="hljs-title">inferior-tty</span>, <span class="hljs-title">input-radix</span>, <span class="hljs-title">interactive-mode</span>.
+(gdb) <span class="hljs-built_in">set</span> i=<span class="hljs-number">0</span>
+Ambiguous <span class="hljs-built_in">set</span> <span class="hljs-keyword">command</span> <span class="hljs-string">"i=0"</span>: .</code></pre>
+<p>En este caso tenemos dos errores, pero son ocasionados por la misma razón, en el primer caso no sabe que comando ejecutar de los tres disponibles, en el segundo caso el signo '=' que actúa como delimitador, la i fue expandida para buscar coincidencias dado que tiene comando que comienzan con esta letra, pero al momento de mostrar las coincidencias no existe ninguna posible.</p>
+<p>EL comando until al igual que muchos de los comandos tiene distintas funcionalidades. Las de until son evitar el dar step en cada iteración mas de una vez, esto es que si tenemos un ciclo solo tendremos que recorrerlo una vez y cuando nos encontremos nuevamente en el inicio del ciclo podremos escribir until, esto activara la ejecución y se detendrán las iteraciones solo hasta que la condicional no se cumpla o trate de salir de su stack frame. Otra forma de utilizar el comando until es indicarle una locación hasta donde deberá parar su ejecución, esta puede ser una linea, una dirección, una etiqueta o una definición de una función dentro del stack frame o al hasta que abandone su stack frame.</p>
+<p>Volvamos al código del programa ha corregir los errores, debemos de cambiar el operador de '>=' cambiarlo ha '>' por la razón de que cuando sea cero habrá iterado tres veces, el tamaño del arreglo, y transferiremos el decremento de la variable localizado en la condicional, un poco antes del direccionamiento para así asignar los índices correctos.
+</p>
+<pre><code class="hljs language-c"><span class="hljs-keyword">while</span>(i > <span class="hljs-number">0</span>)
+    numeros[--i] = i;</code></pre>
+<p>Algo interesante de gdb es que puedes correr comandos del shell, y todo esto se hace mediante el comando shell.
+</p>
+<pre><code class="hljs language-gdb">(gdb) shell gcc debugger<span class="hljs-number">-1.</span>c -ggdb3 -o debugger<span class="hljs-number">-1</span>
+(gdb) r
+Starting <span class="hljs-string">program:</span> <span class="hljs-regexp">/home/</span>zoek<span class="hljs-regexp">/code/</span>c/debugger<span class="hljs-number">-1</span>
+Breakpoint <span class="hljs-number">1</span>, main () at debugger<span class="hljs-number">-1.</span><span class="hljs-string">c:</span><span class="hljs-number">10</span>
+<span class="hljs-number">10</span>     <span class="hljs-keyword">int</span> i=TAM, numeros[TAM];</code></pre>
+<p>Al compilar nuevamente el programa y volver a ejecutarlo, gdb leerá nuevamente la información de depuración y los break que establecimos anteriormente seguirán siendo validos. El programa detendrá su ejecución al inicio de la función main, como no establecimos ningún otro punto de interrupción podremos ejecutar el comando continue o su abreviación c para simular una ejecución común del programa. Aclaro que si establecieron otros puntos de interrupción, continue se detendrá en sus respectivas posiciones.
+</p>
+<pre><code class="hljs language-gdb">(gdb) continue
+Continuing.
+<span class="hljs-number">0</span>
+<span class="hljs-number">1</span>
+<span class="hljs-number">2</span>
+[Inferior <span class="hljs-number">1</span> (process <span class="hljs-number">27759</span>) exited normally]
+(gdb)</code></pre>
+<p>Cuando hallamos terminado el proceso de depuración, podemos llegar a retirar la información de depuración sin tener que volver a compilar el programa sin las flags, esto se hace por medio del programa <a href="http://linux.die.net/man/1/strip">strip</a> que forma parte de el paquete <a href="http://www.gnu.org/software/binutils/">binutils</a> y una manera sencilla de eliminar los símbolos es:
+</p>
+<pre><code class="hljs language-console">    debug$ <span class="hljs-keyword">strip </span>--<span class="hljs-keyword">strip-debug </span>debugger-<span class="hljs-number">1</span></code></pre>
+<p>Con la eliminación de la información de depuración, finalizo este post, en el siguiente tocare los puntos de seguir a los procesos hijo, configurar un poco a gdb y hacer snapshots del estado del proceso.</p>
+<h2 id="gdb-tip"><a href="#gdb-tip" class="phenomic-HeadingAnchor">#</a>GDB TIP</h2>
+<p>El gdb tip consiste en poder visualizar el código fuente, si es que en el binario ha sido incluida la información de depuración.
+<br>
+</p>
+<pre><code class="hljs language-gdb">    (gdb) l
+    <span class="hljs-number">3</span>
+    <span class="hljs-number">4</span>    int main(){
+    <span class="hljs-number">5</span>      int i=TAM, numeros[TAM];
+    <span class="hljs-number">6</span>
+    <span class="hljs-number">7</span>      while(i > <span class="hljs-number">0</span>)
+    <span class="hljs-number">8</span>        numeros[--i] = i;
+    <span class="hljs-number">9</span>
+    <span class="hljs-number">10</span>     while(i &#x3C; TAM)
+    <span class="hljs-number">11</span>       printf(<span class="hljs-string">"%dn"</span>, numeros[i++]);
+    <span class="hljs-number">12</span></code></pre>
+<p>El comando list es simple, cuando especificas list sin argumentos imprime diez o mas lineas, si se ejecuto anteriormente list, imprime las siguientes diez lineas, pero si se encuentra en la parte final del stack frame actual entonces se muestra centrada la linea actual. Con el argumento '-' imprime las diez lineas anteriores a las ya impresas si se ejecuto list anteriormente o las 10 anteriores a la actual. Si se especifica una linea o una función, la linea actual se encontrara centrada. Cabe aclara que si se ejecuta un comando que cambie la linea actual, y se vuelve a ejecutar list, este comando mostrara las lineas como si hubiese sido la primera vez que se ejecuta.</p>
+<p><strong>Nota</strong></p>
+<p>La secuencia de los comandos mostrados no es necesariamente la ideal, fue hecha para fines de enseñanza y el usuario es libre de tomar la decisión de que comando ejecutar en cada instancia.</p>
+<p><strong>EOF</strong></p>
+]]></description><link>http://blog.zoek.space/posts/iniciando-con-gdb/</link><guid isPermaLink="true">http://blog.zoek.space/posts/iniciando-con-gdb/</guid><pubDate>Thu, 31 Jan 2013 00:00:00 GMT</pubDate></item><item><title><![CDATA[¡Hola Mundo!]]></title><description><![CDATA[<h1 id="hola-mundo"><a href="#hola-mundo" class="phenomic-HeadingAnchor">#</a>Hola Mundo</h1>
+<p>Hola mundo, desde hace algun tiempo tenia la inquietud de tener un blog, la motivación de esto era, es y será, compratir las noticias, vivencias, tricks y opiniones de lo que acontence en el mundo desde mi punto de vista.</p>
+<p>Empezaré contando un poco de mi, soy estudiante de Ingeniería en Computación en la Benemérita Universidad Autónoma de Puebla (BUAP), formo parte de la comunidad <a href="http://aztli.cs.buap.mx">Aztli</a>, la cual se dedica a desarrollar una distro GNU/Linux, principalmente enfocada a usuarios finales y alumnos de las carreras de Ingeniería y Licenciatura en Computación.</p>
+<p>Soy un fanático de emacs y la programación, soy un creyente del open source, la cual pienso es una manera de que avanze mas rápido y mejor el mundo.</p>
+<p>Esto es realmente es un poco de lo que me identifica y dando por concluido esta autobiografía, les dejo un saludo citando al viejo y conocido estilo de K&#x26;R .
+<br>
+</p>
+<pre><code class="hljs language-C"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&#x3C;stdio.h></span></span>
+    
+<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-keyword">int</span> argc, <span class="hljs-keyword">char</span> *argv[])</span> </span>{
+    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"Hola mundo!"</span>);
+    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+    </code></pre>
+<p>EOF</p>
+]]></description><link>http://blog.zoek.space/posts/hola-mundo/</link><guid isPermaLink="true">http://blog.zoek.space/posts/hola-mundo/</guid><pubDate>Sun, 20 Jan 2013 00:00:00 GMT</pubDate></item></channel></rss>
